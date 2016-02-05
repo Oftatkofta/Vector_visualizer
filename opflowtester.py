@@ -5,7 +5,7 @@ import time
 from skimage import io
 
 t0 = time.time()
-filename = "med_raw.tif"
+filename = "/Users/jens_e/Desktop/Python_laboratory/Vector_visualizer/test/med_raw.tif"
 
 def makeFromCoorinates(ncols, nrows, frame_width, frame_height):
     """
