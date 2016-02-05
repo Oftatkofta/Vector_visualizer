@@ -72,27 +72,35 @@ def drawArrows(frame, fromCoords, toCoords, color, thickness, **kwargs):
 raw = tiff.imread(filename)
 print raw.shape
 nframes, frame_width, frame_height = raw.shape
-ncols, nrows = 150, 150
-scale = 20
+ncols, nrows = 200, 200
+scale = 2
 
 
-Ustack = np.zeros((frame_width, frame_height,), dtype='float32')
-Vstack = np.zeros((frame_width, frame_height,), dtype='float32')
-for i in xrange(nframes-6):
+outStack = np.zeros((nframes-1, frame_width, frame_height), dtype='uint8')
+#hsv = np.zeros((frame_width, frame_height,3))
+#hsv[...,1] = 255
+
+for i in xrange(nframes-1):
     t1 = time.time()
     print "Start frame "+str(i)+"..."
     frame = raw[i]
     next_frame = raw[i+1]
     flow = cv2.calcOpticalFlowFarneback(frame, next_frame, None, 0.5, 3, 9, 3, 5, 1.2, 0)
-    Ustack = np.append(Ustack, flow[0])
-    Vstack = np.append(Vstack, flow[1])
-    print Ustack.shape, flow.dtype
-    #fromCoords = makeFromCoorinates(ncols, nrows, frame_width, frame_height)
-    #toCoords = makeToCoordinates(fromCoords, Uframe, Vframe, scale)
-    #drawArrows(frame, fromCoords, toCoords, 255, 1, tipLength=0.4)
-    #outStack[i]=frame
+    Uframe = flow[...,0]
+    Vframe = flow[...,1]
+    #mag=np.sqrt(np.square(Uframe)+np.square(Vframe))
+    #mag, ang = cv2.cartToPolar(flow[...,0], flow[...,1])
+    #hsv[...,0] = ang*180/np.pi/2
+    #tmp = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
+    #hsv[...,2] = tmp.astype('uint8')
+
+    fromCoords = makeFromCoorinates(ncols, nrows, frame_width, frame_height)
+    toCoords = makeToCoordinates(fromCoords, Uframe, Vframe, scale)
+    drawArrows(outStack[i], fromCoords, toCoords, 255, 1, tipLength=0.2)
+
     print "Finish frame "+str(i)+" in "+str(time.time()-t1)+" s."
 
-Ustack = Ustack.reshape((6,frame_width, frame_height))
-tiff.imsave('testsave.tif', Ustack)
+print outStack.shape
+tiff.imsave('/Users/jens_e/Desktop/Python_laboratory/Vector_visualizer/test/testsave.tif', outStack)
+
 print "All done in "+str(time.time()-t0)+" s"
