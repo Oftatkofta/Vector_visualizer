@@ -5,17 +5,22 @@ import time
 from skimage import io
 
 t0 = time.time()
-filename = "/Users/jens_e/Desktop/Python_laboratory/Vector_visualizer/test/med_raw.tif"
+filename = "/Volumes/HDD/Huygens_SYNC/_SYNC/CollectiveMigrationAnalysis/Examplemovies/160115_H2B_Starve_serumFree_T0_10min_Pos_003_003.tif"
 
 def makeFromCoorinates(ncols, nrows, frame_width, frame_height):
     """
     Generates a list of ncols*nrows evenly spaced x/y coordinates.
-    :param ncols: Number of horizontal arrows
-    :param nrows: Number of vertical arrows
-    :param frame_width: with of image in pixels
-    :param frame_height: heightof image in pixels
-    :return: list of tuples containing origin x/y coordinates for velocity vectors
+    Args:
+        ncols: (int) Number of horizontal arrows
+        nrows: (int) Number of vertical arrows
+        frame_width: (int) with of image in pixels
+        frame_height: (int) height of image in pixels
+
+    Returns:
+        list of tuples containing origin x/y coordinates for velocity vectors
+
     """
+
 
     dx = frame_width/float(ncols)
     dy = frame_height/float(nrows)
@@ -72,8 +77,8 @@ def drawArrows(frame, fromCoords, toCoords, color, thickness, **kwargs):
 raw = tiff.imread(filename)
 print raw.shape
 nframes, frame_width, frame_height = raw.shape
-ncols, nrows = 200, 200
-scale = 2
+ncols, nrows = 25, 25
+scale = 8
 
 
 outStack = np.zeros((nframes-1, frame_width, frame_height), dtype='uint8')
@@ -96,11 +101,11 @@ for i in xrange(nframes-1):
 
     fromCoords = makeFromCoorinates(ncols, nrows, frame_width, frame_height)
     toCoords = makeToCoordinates(fromCoords, Uframe, Vframe, scale)
-    drawArrows(outStack[i], fromCoords, toCoords, 255, 1, tipLength=0.2)
+    drawArrows(outStack[i], fromCoords, toCoords, 255, 2, tipLength=0.25)
 
     print "Finish frame "+str(i)+" in "+str(time.time()-t1)+" s."
 
 print outStack.shape
-tiff.imsave('/Users/jens_e/Desktop/Python_laboratory/Vector_visualizer/test/testsave.tif', outStack)
+tiff.imsave(filename+'_vectors.tif', outStack)
 
 print "All done in "+str(time.time()-t0)+" s"
