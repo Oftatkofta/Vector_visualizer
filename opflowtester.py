@@ -5,7 +5,11 @@ import time
 from skimage import io
 
 t0 = time.time()
-filename = "/Volumes/HDD/Huygens_SYNC/_SYNC/CollectiveMigrationAnalysis/Examplemovies/160115_H2B_Starve_serumFree_T0_10min_Pos_003_003.tif"
+inputDirectory = "/Volumes/HDD/Huygens_SYNC/_SYNC/CollectiveMigrationAnalysis/Examplemovies/"
+#filenames = ["Starve_serumFree_flow_diection.tif"]
+filenames = ["160112_H2B_noStarve_Pos_000_005_Median_3_frames.tif",
+              "160115_H2B_Starve_serumFree_T0_10min_Pos_003_003_Median_3_frames.tif",
+              "160126_H2B_T0_1h_3ml_serum_Pos_002_005_Median_3_frames.tif"]
 
 def makeFromCoorinates(ncols, nrows, frame_width, frame_height):
     """
@@ -73,39 +77,91 @@ def drawArrows(frame, fromCoords, toCoords, color, thickness, **kwargs):
         toX, toY = toCoords[i]
         cv2.arrowedLine(frame, (fromX,fromY), (toX,toY), color, thickness, **kwargs)
 
+def vectorVizualizer(inputDirectory, filenames, outputDirectory, nrows =15, ncols = 15, scale = 15):
+    """
 
-raw = tiff.imread(filename)
-print raw.shape
-nframes, frame_width, frame_height = raw.shape
-ncols, nrows = 25, 25
-scale = 8
+    Args:
+        inputDirectory: (str)
+        filenames: (list) filenames to analyze and draw
+        outputDirectory: (str) Where to place output
+
+    Returns:
+
+    """
+    for filename in filenames:
+
+        raw = tiff.imread(inputDirectory+filename)
+        nframes, frame_width, frame_height = raw.shape
+        ncols, nrows = nrows, ncols
+        scale = scale
+        outStack = np.zeros((nframes-1, frame_width, frame_height), dtype='uint8')
+
+        for i in xrange(nframes-1):
+            t1 = time.time()
+            print "Start frame "+str(i)+"..."+filename
+            frame = raw[i]
+            next_frame = raw[i+1]
+            flow = cv2.calcOpticalFlowFarneback(frame, next_frame, None, 0.5, 3, 9, 3, 5, 1.2, 0)
+            Uframe = flow[...,0]
+            Vframe = flow[...,1]
+
+            fromCoords = makeFromCoorinates(ncols, nrows, frame_width, frame_height)
+            toCoords = makeToCoordinates(fromCoords, Uframe, Vframe, scale)
+            drawArrows(outStack[i], fromCoords, toCoords, 255, 1, tipLength=0.2, line_type=cv2.LINE_AA)
+
+            print "Finish frame "+str(i)+" in "+str(time.time()-t1)+" s."
+
+        #print outStack.shape
+        tiff.imsave(outputDirectory+filename+'_vectors.tif', outStack)
+
+    print "All done in "+str(time.time()-t0)+" s"
 
 
-outStack = np.zeros((nframes-1, frame_width, frame_height), dtype='uint8')
-#hsv = np.zeros((frame_width, frame_height,3))
-#hsv[...,1] = 255
+def draw_hsv(flow):
+    h, w = flow.shape[:2]
+    fx, fy = flow[:,:,0], flow[:,:,1]
+    ang = np.arctan2(fy, fx) + np.pi
+    v = np.sqrt(fx*fx+fy*fy)
+    hsv = np.zeros((h, w, 3), np.uint8)
+    hsv[...,0] = ang*(180/np.pi/2)
+    hsv[...,1] = 255
+    hsv[...,2] = np.minimum(v*4, 255)
+    bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    return bgr
 
-for i in xrange(nframes-1):
-    t1 = time.time()
-    print "Start frame "+str(i)+"..."
-    frame = raw[i]
-    next_frame = raw[i+1]
-    flow = cv2.calcOpticalFlowFarneback(frame, next_frame, None, 0.5, 3, 9, 3, 5, 1.2, 0)
-    Uframe = flow[...,0]
-    Vframe = flow[...,1]
-    #mag=np.sqrt(np.square(Uframe)+np.square(Vframe))
-    #mag, ang = cv2.cartToPolar(flow[...,0], flow[...,1])
-    #hsv[...,0] = ang*180/np.pi/2
-    #tmp = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
-    #hsv[...,2] = tmp.astype('uint8')
 
-    fromCoords = makeFromCoorinates(ncols, nrows, frame_width, frame_height)
-    toCoords = makeToCoordinates(fromCoords, Uframe, Vframe, scale)
-    drawArrows(outStack[i], fromCoords, toCoords, 255, 2, tipLength=0.25)
 
-    print "Finish frame "+str(i)+" in "+str(time.time()-t1)+" s."
+def HSVizualizer(inputDirectory, filenames, outputDirectory):
+    """
 
-print outStack.shape
-tiff.imsave(filename+'_vectors.tif', outStack)
+    Args:
+        inputDirectory: (str)
+        filenames: (list) filenames to analyze and draw
+        outputDirectory: (str) Where to place output
 
-print "All done in "+str(time.time()-t0)+" s"
+    Returns:
+
+    """
+    for filename in filenames:
+
+        raw = tiff.imread(inputDirectory+filename)
+        nframes, frame_width, frame_height = raw.shape
+        #outstack is in RGB color so we need an extra 3 dimensions
+        outStack = np.zeros((nframes-1, frame_width, frame_height, 3), dtype='uint8')
+
+        for i in xrange(nframes-1):
+            t1 = time.time()
+            print "Start frame "+str(i)+"..."+filename
+            frame = raw[i]
+            next_frame = raw[i+1]
+            flow = cv2.calcOpticalFlowFarneback(frame, next_frame, None, 0.5, 3, 3, 3, 5, 1.2, 0)
+            outStack[i] = draw_hsv(flow)
+
+            print "Finish frame "+str(i)+" in "+str(time.time()-t1)+" s."
+
+        #print outStack.shape
+        tiff.imsave(outputDirectory+filename+'_HSV.tif', outStack)
+
+    print "All done in "+str(time.time()-t0)+" s"
+
+HSVizualizer(inputDirectory,filenames[1:2], inputDirectory)
