@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 import tifffile as tiff
 import time
-from skimage import io
+from histogramGenerator import *
 
 t0 = time.time()
-directory = "/Volumes/HDD/Huygens_SYNC/_SYNC/CollectiveMigrationAnalysis/Examplemovies/"
+inDirectory = "/Volumes/HDD/Huygens_SYNC/_SYNC/CollectiveMigrationAnalysis/Examplemovies/"
+outDirectory = "/Volumes/HDD/Huygens_SYNC/_SYNC/CollectiveMigrationAnalysis/Examplemovies/test"
 filenames = ["160112_H2B_noStarve_Pos_000_005_Median_3_frames.tif",
              "160115_H2B_Starve_serumFree_T0_10min_Pos_003_003_Median_3_frames.tif",
              "160126_H2B_T0_1h_3ml_serum_Pos_002_005_Median_3_frames.tif"]
@@ -78,7 +79,7 @@ def drawArrows(frame, fromCoords, toCoords, color, thickness, **kwargs):
 
 for filename in filenames:
 
-    raw = tiff.imread(directory+filename)
+    raw = tiff.imread(inDirectory + filename)
     nframes, frame_width, frame_height = raw.shape
     ncols, nrows = 15, 15
     scale = 15
@@ -93,13 +94,19 @@ for filename in filenames:
         Uframe = flow[...,0]
         Vframe = flow[...,1]
 
+        velocityFrame = np.sqrt((Uframe**2+Vframe**2))
+        directionFrame = np.arcsin((Vframe/velocityFrame)
+
         fromCoords = makeFromCoorinates(ncols, nrows, frame_width, frame_height)
         toCoords = makeToCoordinates(fromCoords, Uframe, Vframe, scale)
         drawArrows(outStack[i], fromCoords, toCoords, 255, 1, tipLength=0.2, line_type=cv2.LINE_AA)
+
+
 
         print "Finish frame "+str(i)+" in "+str(time.time()-t1)+" s."
 
     #print outStack.shape
     tiff.imsave(filename+'_vectors.tif', outStack)
+
 
 print "All done in "+str(time.time()-t0)+" s"

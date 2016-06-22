@@ -154,7 +154,7 @@ def HSVizualizer(inputDirectory, filenames, outputDirectory):
             print "Start frame "+str(i)+"..."+filename
             frame = raw[i]
             next_frame = raw[i+1]
-            flow = cv2.calcOpticalFlowFarneback(frame, next_frame, None, 0.5, 3, 3, 3, 5, 1.2, 0)
+            flow = cv2.calcOpticalFlowFarneback(frame, next_frame, None, 0.5, 3, 8, 4, 7, 1.5, 0)
             outStack[i] = draw_hsv(flow)
 
             print "Finish frame "+str(i)+" in "+str(time.time()-t1)+" s."
